@@ -1,4 +1,4 @@
 export const getRooms = async () => {
-	const res = await fetch('http://localhost:3001/rooms');
+	const res = await fetch('https://realtime-chat-portfolio.onrender.com/rooms');
 	return res.json();
 };
