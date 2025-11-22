@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { socket } from '../../socket';
+import { socket } from '../../socket.js';
 import { useParams } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import styles from './Chat.module.scss';
+import { Pencil } from '../../images/Pencil';
 
 export const ChatPage = () => {
 	const [message, setMessage] = useState('');
@@ -10,73 +11,103 @@ export const ChatPage = () => {
 	const [isJoined, setIsJoined] = useState(false);
 	const [newRoomName, setNewRoomName] = useState('');
 	const [roomError, setRoomError] = useState('');
+	const [editingId, setEditingId] = useState(null);
+	const [editingText, setEditingText] = useState('');
+
 	const navigate = useNavigate();
 
 	const { roomName } = useParams();
 	const userName = localStorage.getItem('username');
+	const userId = localStorage.getItem('userId');
 
 	useEffect(() => {
-		setIsJoined(false);
-
-		socket.emit('join-room', roomName, userName);
-
-		const roomMessagesCallback = msgs => setMessages(msgs);
-
-		const newMessageCallback = msg => {
-			setMessages(prev => [...prev, msg]);
+		const handleRoomMessages = msgs => {
+			setMessages([...msgs]);
 		};
-		const joinedRoomCallback = room => {
+
+		const handleJoinedRoom = room => {
 			if (room === roomName) setIsJoined(true);
 		};
-		const roomRenamedCallback = newRoomName => {
-			navigate(`/chat-room/${newRoomName}`);
+
+		const handleRoomRenamed = newRoomNameValue => {
+			setNewRoomName('');
+			navigate(`/chat-room/${newRoomNameValue}`);
 		};
 
-		const roomDeletedCallback = () => {
+		const handleRoomDeleted = () => {
 			setIsJoined(false);
 			setMessages([]);
 			navigate('/chat-pannel');
 		};
 
-		const roomErrorCallback = message => {
-			setRoomError(message);
+		const handleRoomError = errorMessage => {
+			setRoomError(errorMessage);
 		};
 
-		const leavedRoomCallback = leavedId => {
-			if (leavedId === socket.id) {
+		const handleLeavedRoom = leavedId => {
+			if (leavedId === userId) {
 				setIsJoined(false);
 				navigate('/chat-pannel');
 			}
 		};
 
-		socket.on('room-messages', roomMessagesCallback);
-		socket.on('new-message', newMessageCallback);
-		socket.on('joined-room', joinedRoomCallback);
-		socket.on('room-renamed', roomRenamedCallback);
-		socket.on('room-deleted', roomDeletedCallback);
-		socket.on('room-error', roomErrorCallback);
-		socket.on('leaved-room', leavedRoomCallback);
+		const handleMessageEdited = editedMessages => {
+			setMessages([...editedMessages]);
+		};
+
+		socket.on('room-messages', handleRoomMessages);
+		socket.on('new-message', handleRoomMessages);
+		socket.on('joined-room', handleJoinedRoom);
+		socket.on('room-renamed', handleRoomRenamed);
+		socket.on('room-deleted', handleRoomDeleted);
+		socket.on('room-error', handleRoomError);
+		socket.on('leaved-room', handleLeavedRoom);
+		socket.on('message-edited', handleMessageEdited);
 
 		return () => {
-			socket.off('room-messages', roomMessagesCallback);
-			socket.off('new-message', newMessageCallback);
-			socket.off('joined-room', joinedRoomCallback);
-			socket.off('room-deleted', roomDeletedCallback);
-			socket.off('room-renamed', roomRenamedCallback);
-			socket.off('room-error', roomErrorCallback);
-			socket.off('leaved-room', leavedRoomCallback);
+			socket.off('room-messages', handleRoomMessages);
+			socket.off('new-message', handleRoomMessages);
+			socket.off('joined-room', handleJoinedRoom);
+			socket.off('room-renamed', handleRoomRenamed);
+			socket.off('room-deleted', handleRoomDeleted);
+			socket.off('room-error', handleRoomError);
+			socket.off('leaved-room', handleLeavedRoom);
+			socket.off('message-edited', handleMessageEdited);
 		};
-	}, [roomName, userName, navigate]);
+	}, [roomName, userId, navigate]);
+
+	useEffect(() => {
+		if (!roomName || !userName || !userId) return;
+		if (!socket.connected) return;
+
+		setIsJoined(false);
+		socket.emit('join-room', roomName, userName, userId);
+	}, [roomName, userName, userId]);
+
+	useEffect(() => {
+		const handleReconnect = () => {
+			if (roomName && userName && userId) {
+				socket.emit('join-room', roomName, userName, userId);
+			}
+		};
+
+		socket.on('connect', handleReconnect);
+
+		return () => {
+			socket.off('connect', handleReconnect);
+		};
+	}, [roomName, userName, userId]);
 
 	const handleSendMessage = () => {
-		if (message.trim() && isJoined) {
-			socket.emit('send-message', roomName, userName, socket.id, message);
+		if (message.trim() && isJoined && socket.connected) {
+			console.log('📤 Sending message:', message);
+			socket.emit('send-message', roomName, userName, userId, message);
 			setMessage('');
 		}
 	};
 
 	const handleLeaveRoom = () => {
-		socket.emit('leave-room', roomName, socket.id);
+		socket.emit('leave-room', roomName, userId);
 	};
 
 	const handleRenameRoom = () => {
@@ -88,11 +119,11 @@ export const ChatPage = () => {
 		}
 		setRoomError('');
 
-		socket.emit('rename-room', roomName, newRoomName);
+		socket.emit('rename-room', roomName, newRoomName, userId);
 	};
 
 	const handleDeleteRoom = () => {
-		socket.emit('delete-room', roomName, socket.id);
+		socket.emit('delete-room', roomName, userId);
 	};
 
 	const handleInputChange = e => {
@@ -100,23 +131,65 @@ export const ChatPage = () => {
 		setNewRoomName(e.target.value);
 	};
 
+	const handleEditMessage = msg => {
+		setEditingId(msg.messageId);
+		setEditingText(msg.message);
+	};
+
+	const handleSaveEdit = () => {
+		socket.emit('edit-message', roomName, editingId, editingText);
+		setEditingId(null);
+		setEditingText('');
+	};
+
 	return (
 		<div className={styles.chatPage}>
-			<h1>Chat room: {roomName}</h1>
+			<h1>
+				Chat room: <span style={{ color: '#7b61ff' }}>{roomName}</span>
+			</h1>
 			<div className={styles.chatPage__messagesContainer}>
 				<div className={styles.chatPage__messages}>
-					{messages.map((msg, idx) => {
-						const isAuthor = msg.id === socket.id;
+					{messages.map(msg => {
+						const isAuthor = msg.authorId === userId;
 						const messageContainerClass = isAuthor
 							? `${styles.chatPage__messageContainer} ${styles['chatPage__messageContainer--author']}`
 							: styles.chatPage__messageContainer;
 						return (
-							<div key={idx} className={messageContainerClass}>
+							<div key={msg.messageId} className={messageContainerClass}>
 								<p className={styles.chatPage__author}>
 									{isAuthor ? 'You' : msg.author}
 								</p>
 								<div className={styles.chatPage__message}>
-									<p>{msg.message}</p>
+									{editingId === msg.messageId ? (
+										<div className={styles.chatPage__editContainer}>
+											<textarea
+												value={editingText}
+												onChange={e => setEditingText(e.target.value)}
+												rows={2}
+											/>
+											<div>
+												<button onClick={handleSaveEdit}>Save</button>
+												<button
+													onClick={() => {
+														setEditingId(null);
+														setEditingText('');
+													}}
+												>
+													Cancel
+												</button>
+											</div>
+										</div>
+									) : (
+										<p>{msg.message}</p>
+									)}
+									{isAuthor && !editingId && (
+										<button
+											className={styles.chatPage__editButton}
+											onClick={() => handleEditMessage(msg)}
+										>
+											{Pencil}
+										</button>
+									)}
 								</div>
 								<span>{new Date(msg.time).toLocaleString('uk-UA')}</span>
 							</div>
@@ -131,7 +204,10 @@ export const ChatPage = () => {
 				rows={2}
 				className={styles.chatPage__messageInput}
 			/>
-			<button onClick={handleSendMessage} disabled={!isJoined}>
+			<button
+				onClick={handleSendMessage}
+				disabled={!isJoined || !socket.connected}
+			>
 				Send
 			</button>
 			<div className={styles.chatPage__roomActions}>

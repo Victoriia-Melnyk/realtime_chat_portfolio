@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { v4 as uuidv4 } from 'uuid';
 import styles from './HomePage.module.scss';
 
 export const HomePage = () => {
@@ -21,6 +22,7 @@ export const HomePage = () => {
 
 	const handleSaveName = () => {
 		const normalizedUsername = username.trim();
+		const userId = uuidv4();
 
 		if (!normalizedUsername) {
 			setUserNameError('Username is required');
@@ -29,6 +31,7 @@ export const HomePage = () => {
 		}
 
 		localStorage.setItem('username', normalizedUsername);
+		localStorage.setItem('userId', userId);
 
 		setUsername(normalizedUsername);
 		setUserNameError('');

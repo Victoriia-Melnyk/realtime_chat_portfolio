@@ -37,4 +37,6 @@ io.on('connection', socket => {
 	roomsController.renameRoomEvent(socket, io);
 
 	roomsController.deleteRoomEvent(socket, io);
+
+	roomsController.editMessageEvent(socket, io);
 });

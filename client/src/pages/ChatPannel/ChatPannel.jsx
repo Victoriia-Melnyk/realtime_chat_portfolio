@@ -1,6 +1,6 @@
+import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { socket } from '../../socket.js';
-import { useNavigate } from 'react-router-dom';
 import styles from './ChatPannel.module.scss';
 import { getRooms } from '../../services/roomService.js';
 import bubble from '../../images/bubble.png';
@@ -14,6 +14,7 @@ export const ChatPannel = () => {
 	const navigate = useNavigate();
 
 	const userName = localStorage.getItem('username');
+	const userId = localStorage.getItem('userId');
 
 	useEffect(() => {
 		getRooms().then(data => setRoomList(data));
@@ -32,18 +33,18 @@ export const ChatPannel = () => {
 			setRoomList(rooms);
 		};
 
-		socket.on('room-error', roomErrorCallback);
+		// socket.on('room-error', roomErrorCallback);
 
 		socket.on('room-created', roomCreatedCallback);
 
 		socket.on('rooms-updated', roomsUpdatedCallback);
 
 		return () => {
-			socket.off('room-error', roomErrorCallback);
+			// socket.off('room-error', roomErrorCallback);
 			socket.off('room-created', roomCreatedCallback);
 			socket.off('rooms-updated', roomsUpdatedCallback);
 		};
-	}, [navigate]);
+	}, []);
 
 	const changeRoomName = e => {
 		setRoomNameError('');
@@ -63,6 +64,7 @@ export const ChatPannel = () => {
 		socket.emit('create-room', {
 			roomName: normalizedRoomName,
 			ownerName: userName,
+			ownerId: userId,
 		});
 	};
 
@@ -83,7 +85,7 @@ export const ChatPannel = () => {
 	return (
 		<div className={styles.chatPannel}>
 			<div className={styles.chatPannel__container}>
-				<h1>Select the chat room:</h1>
+				<h1>Select the existing chat room:</h1>
 				{roomList === null ? (
 					<p>Loading rooms...</p>
 				) : (
@@ -106,7 +108,7 @@ export const ChatPannel = () => {
 						<button onClick={handleJoinRoom}>Join</button>
 					</>
 				)}
-				<p>OR create a new chat room</p>
+				<p>OR create a new chat room:</p>
 				<input
 					type="text"
 					placeholder="Room name"

@@ -61,11 +61,14 @@
 				border-radius: 20px 0 20px 20px;
 				align-self: end;
 				text-align: end;
+				justify-content: flex-end;
 			}
 		}
 	}
 
 	&__message {
+		display: flex;
+		gap: 5px;
 		width: fit-content;
 		min-width: 100px;
 		max-width: 320px;
@@ -75,6 +78,22 @@
 		word-break: break-word;
 		white-space: pre-line;
 		color: #2d3a4a;
+
+		svg {
+			width: 20px;
+			cursor: pointer;
+		}
+
+		button[class*='editButton'] {
+			width: unset;
+			background-color: unset;
+			padding: 0;
+			box-shadow: unset;
+
+			&:hover {
+				background: transparent;
+			}
+		}
 	}
 
 	&__author {
@@ -110,6 +129,7 @@
 		padding: 10px 15px;
 
 		border: 1px solid #cbd5e1;
+		border-radius: 8px;
 		font-size: 1rem;
 		outline: none;
 		background: #fff;
@@ -117,7 +137,6 @@
 
 	button {
 		width: 100%;
-		// max-width: 400px;
 		color: #fff;
 		border: none;
 		border-radius: 20px;
@@ -143,5 +162,42 @@
 
 	&__error {
 		color: #e11d48;
+	}
+
+	&__editButton {
+		background-color: unset;
+	}
+
+	&__editContainer {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 10px;
+
+		& > div {
+			display: flex;
+			gap: 5px;
+		}
+
+		textarea {
+			border: none;
+			box-shadow: rgba(149, 157, 165, 0.2) 0px 8px 24px;
+			border-radius: 5px;
+		}
+
+		button {
+			width: max-content;
+			background-color: unset;
+			padding: 5px;
+			border-radius: 2px;
+			border: 1px solid grey;
+			color: black;
+			font-size: 12px;
+			height: fit-content;
+
+			&:hover {
+				background: transparent;
+			}
+		}
 	}
 }

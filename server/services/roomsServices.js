@@ -1,110 +1,168 @@
-const rooms = [];
+import { v4 as uuidv4 } from 'uuid';
+import fs from 'fs/promises';
+import { existsSync } from 'fs';
+
+const ROOMS_FILE = './rooms.json';
+
+const loadRooms = async () => {
+	if (existsSync(ROOMS_FILE)) {
+		const data = await fs.readFile(ROOMS_FILE, 'utf-8');
+		return JSON.parse(data);
+	}
+	return [];
+};
+
+const saveRooms = async rooms => {
+	await fs.writeFile(ROOMS_FILE, JSON.stringify(rooms, null, 2));
+};
 
 export const getRooms = async () => {
-	return rooms.map(room => room.name);
+	const latestRooms = await loadRooms();
+	return latestRooms.map(room => room.name);
 };
 
-export const getRoomByName = roomName => {
-	return rooms.find(room => room.name === roomName);
+export const getRoomByName = async roomName => {
+	const latestRooms = await loadRooms();
+	return latestRooms.find(room => room.name === roomName);
 };
-export const createRoom = ({ name, ownerId, ownerName }) => {
-	if (getRoomByName(name)) {
+
+export const createRoom = async ({ name, ownerName, ownerId }) => {
+	const latestRooms = await loadRooms();
+	const room = latestRooms.find(room => room.name === name);
+
+	if (room) {
 		throw new Error('Room already exists');
 	}
 
-	const room = {
+	const newRoom = {
 		name,
-		ownerId,
 		ownerName,
+		ownerId,
 		messages: [],
-		participants: [{ id: ownerId, name: ownerName }],
+		participants: [{ userId: ownerId, name: ownerName }],
 	};
 
-	rooms.push(room);
-	return room;
+	latestRooms.push(newRoom);
+	await saveRooms(latestRooms);
+	return newRoom;
 };
 
-export const sendMessage = (roomName, userName, socketId, message) => {
-	const room = getRoomByName(roomName);
+export const sendMessage = async (roomName, userName, userId, message) => {
+	const latestRooms = await loadRooms();
+	const room = latestRooms.find(room => room.name === roomName);
+
 	if (!room) {
 		throw new Error('Room not found');
 	}
+
 	const messageData = {
+		messageId: uuidv4(),
 		author: userName,
-		id: socketId,
+		authorId: userId,
 		message,
 		time: new Date(),
 	};
+
 	room.messages.push(messageData);
-	console.log(room.messages);
-	return messageData;
+	await saveRooms(latestRooms);
+	return room.messages;
 };
 
-export const joinRoom = (roomName, userName, socketId) => {
-	const room = getRoomByName(roomName);
+export const joinRoom = async (roomName, userName, userId) => {
+	const latestRooms = await loadRooms();
+	const room = latestRooms.find(room => room.name === roomName);
 
 	if (!room) {
 		throw new Error('Room not found');
 	}
 
 	const participantExists = room.participants.some(
-		participant => participant.id === socketId
+		participant => participant.userId === userId
 	);
 
 	if (!participantExists) {
-		room.participants.push({ id: socketId, name: userName });
+		room.participants.push({ userId: userId, name: userName });
+		await saveRooms(latestRooms);
 	}
 
 	return room;
 };
 
-export const leaveRoom = (roomName, socketId) => {
-	const room = getRoomByName(roomName);
+export const leaveRoom = async (roomName, userId) => {
+	const latestRooms = await loadRooms();
+	const room = latestRooms.find(room => room.name === roomName);
 
 	if (!room) {
 		throw new Error('Room not found');
 	}
 
-	room.participants = room.participants.filter(p => p.id !== socketId);
+	room.participants = room.participants.filter(p => p.userId !== userId);
+	await saveRooms(latestRooms);
 
 	return room;
 };
 
-export const renameRoom = (oldRoomName, newRoomName, socketId) => {
-	const room = getRoomByName(oldRoomName);
+export const renameRoom = async (oldRoomName, newRoomName, userId) => {
+	const latestRooms = await loadRooms();
+	const room = latestRooms.find(room => room.name === oldRoomName);
 
 	if (!room) {
 		throw new Error('Room not found');
 	}
 
-	const isOwner = room.ownerId === socketId;
+	const isOwner = room.ownerId === userId;
 
 	if (!isOwner) {
 		throw new Error('Only the room owner can rename the room');
 	}
 
 	room.name = newRoomName;
+	await saveRooms(latestRooms);
+
 	return room;
 };
 
-export const deleteRoom = (roomName, socketId) => {
-	const room = getRoomByName(roomName);
+export const deleteRoom = async (roomName, userId) => {
+	const latestRooms = await loadRooms();
+	const room = latestRooms.find(room => room.name === roomName);
 
 	if (!room) {
 		throw new Error('Room not found');
 	}
 
-	const isOwner = room.ownerId === socketId;
+	const isOwner = room.ownerId === userId;
 
 	if (!isOwner) {
 		throw new Error('Only the room owner can delete the room');
 	}
 
-	const index = rooms.findIndex(room => room.name === roomName);
+	const index = latestRooms.findIndex(room => room.name === roomName);
 
 	if (index !== -1) {
-		rooms.splice(index, 1);
+		latestRooms.splice(index, 1);
 	}
 
-	return rooms;
+	await saveRooms(latestRooms);
+
+	return latestRooms;
+};
+
+export const editMessage = async (roomName, editingId, editingText) => {
+	const latestRooms = await loadRooms();
+	const room = latestRooms.find(room => room.name === roomName);
+
+	if (!room) {
+		throw new Error('Room not found');
+	}
+
+	const message = room.messages.find(msg => msg.messageId === editingId);
+
+	if (!message) {
+		throw new Error('Message not found');
+	}
+
+	message.message = editingText;
+	await saveRooms(latestRooms);
+
+	return room.messages;
 };
