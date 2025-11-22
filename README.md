@@ -29,7 +29,7 @@ This Realtime Chat App is a modern, responsive web application that enables user
 
 ## **Preview** 🎉
 
-- **Local Demo**: Run locally to see real-time chat in action.
+- **Demo**: [DEMO](https://realtime-chat-portfolio-1.onrender.com)
 
 ---
 

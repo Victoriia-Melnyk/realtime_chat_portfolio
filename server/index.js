@@ -8,8 +8,15 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const CLIENT_HOST = process.env.CLIENT_HOST || 'http://localhost:3000/';
 
-app.use(cors());
+app.use(
+	cors({
+		origin: CLIENT_HOST,
+		methods: ['GET', 'POST'],
+	})
+);
+
 app.use(express.json());
 
 app.get('/rooms', roomsController.getRoomsRequest);
