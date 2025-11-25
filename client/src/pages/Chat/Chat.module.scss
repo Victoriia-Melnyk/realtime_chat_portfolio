@@ -1,15 +1,22 @@
 .chatPage {
+	display: flex;
+	align-items: center;
+	justify-content: center;
 	width: 100vw;
 	min-height: 100vh;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 20px;
-	padding: 20px;
-	background: linear-gradient(120deg, #f8fafc 0%, #e0e7ef 100%);
+
 	font-family: 'Segoe UI', Arial, sans-serif;
-	padding-top: 40px;
-	background-color: #bed9ef;
+	background-color: #deebf7;
+
+	&__container {
+		width: 100%;
+		max-width: 500px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 20px;
+		padding: 20px;
+	}
 
 	&__messagesContainer {
 		width: 100%;
@@ -18,6 +25,7 @@
 		min-height: 200px;
 		max-height: 350px;
 		padding: 15px;
+		overflow-y: auto;
 
 		background: #fff;
 		border-radius: 16px;
@@ -31,8 +39,6 @@
 		gap: 10px;
 		width: 100%;
 		height: 100%;
-
-		overflow-y: auto;
 	}
 
 	h1 {
@@ -155,9 +161,22 @@
 
 	&__roomActions {
 		display: flex;
+		flex-direction: column;
 		width: 100%;
 		max-width: 500px;
 		gap: 10px;
+	}
+
+	&__roomNameActions {
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		gap: 20px;
+
+		& > div {
+			display: flex;
+			gap: 10px;
+		}
 	}
 
 	&__error {
@@ -197,6 +216,54 @@
 
 			&:hover {
 				background: transparent;
+			}
+		}
+	}
+
+	&__roomName {
+		display: flex;
+		justify-content: center;
+		gap: 10px;
+		width: 100%;
+
+		& > button[class*='editButton'] {
+			width: unset;
+			background-color: unset;
+			padding: 0;
+			box-shadow: unset;
+			width: 20px;
+			cursor: pointer;
+
+			&:hover {
+				background: transparent;
+			}
+		}
+	}
+
+	&__messageInputContainer {
+		position: relative;
+		width: 100%;
+
+		button {
+			position: absolute;
+			display: flex;
+			width: 30px;
+			height: 30px;
+			right: 0;
+			top: 50%;
+			transform: translate(-50%, -50%);
+			background-color: unset;
+			padding: 0;
+			box-shadow: unset;
+			cursor: pointer;
+
+			&:hover {
+				background: transparent;
+			}
+
+			svg {
+				width: 100%;
+				height: 100%;
 			}
 		}
 	}

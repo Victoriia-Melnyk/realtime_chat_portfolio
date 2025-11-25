@@ -6,7 +6,7 @@
 	display: flex;
 	justify-content: center;
 	align-items: center;
-	background-color: #cddaf0;
+	background-color: #deebf7;
 	font-family: 'Segoe UI', Arial, sans-serif;
 
 	&__container {
@@ -64,8 +64,6 @@
 	}
 
 	img {
-		position: absolute;
-		top: 0;
 		width: 150px;
 	}
 }

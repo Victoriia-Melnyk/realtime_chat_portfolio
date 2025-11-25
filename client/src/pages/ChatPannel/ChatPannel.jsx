@@ -33,14 +33,14 @@ export const ChatPannel = () => {
 			setRoomList(rooms);
 		};
 
-		// socket.on('room-error', roomErrorCallback);
+		socket.on('room-error', roomErrorCallback);
 
 		socket.on('room-created', roomCreatedCallback);
 
 		socket.on('rooms-updated', roomsUpdatedCallback);
 
 		return () => {
-			// socket.off('room-error', roomErrorCallback);
+			socket.off('room-error', roomErrorCallback);
 			socket.off('room-created', roomCreatedCallback);
 			socket.off('rooms-updated', roomsUpdatedCallback);
 		};
@@ -85,6 +85,8 @@ export const ChatPannel = () => {
 	return (
 		<div className={styles.chatPannel}>
 			<div className={styles.chatPannel__container}>
+				<img src={bubble} alt="chat bubble" />
+
 				<h1>Select the existing chat room:</h1>
 				{roomList === null ? (
 					<p>Loading rooms...</p>
@@ -119,7 +121,6 @@ export const ChatPannel = () => {
 				{roomNameError && (
 					<p className={styles.chatPannel__error}>{roomNameError}</p>
 				)}
-				<img src={bubble} alt="chat bubble" />
 			</div>
 		</div>
 	);

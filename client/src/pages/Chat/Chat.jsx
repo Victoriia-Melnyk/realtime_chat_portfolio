@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { socket } from '../../socket.js';
 import { useParams } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import styles from './Chat.module.scss';
 import { Pencil } from '../../images/Pencil';
+import { Plane } from '../../images/Plane';
 
 export const ChatPage = () => {
 	const [message, setMessage] = useState('');
@@ -13,12 +14,15 @@ export const ChatPage = () => {
 	const [roomError, setRoomError] = useState('');
 	const [editingId, setEditingId] = useState(null);
 	const [editingText, setEditingText] = useState('');
+	const [editingRoomName, setEditingRoomName] = useState(false);
 
 	const navigate = useNavigate();
 
 	const { roomName } = useParams();
 	const userName = localStorage.getItem('username');
 	const userId = localStorage.getItem('userId');
+
+	const messagesEndRef = useRef(null);
 
 	useEffect(() => {
 		const handleRoomMessages = msgs => {
@@ -98,6 +102,12 @@ export const ChatPage = () => {
 		};
 	}, [roomName, userName, userId]);
 
+	useEffect(() => {
+		if (messagesEndRef.current) {
+			messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+		}
+	}, [messages]);
+
 	const handleSendMessage = () => {
 		if (message.trim() && isJoined && socket.connected) {
 			console.log('📤 Sending message:', message);
@@ -118,7 +128,7 @@ export const ChatPage = () => {
 			return;
 		}
 		setRoomError('');
-
+		setEditingRoomName(false);
 		socket.emit('rename-room', roomName, newRoomName, userId);
 	};
 
@@ -142,89 +152,126 @@ export const ChatPage = () => {
 		setEditingText('');
 	};
 
+	const handleEditRoom = () => {
+		setEditingRoomName(true);
+		setNewRoomName(roomName);
+	};
+
+	const handleCancelRename = () => {
+		setEditingRoomName(false);
+		setNewRoomName('');
+		setRoomError('');
+	};
+
 	return (
 		<div className={styles.chatPage}>
-			<h1>
-				Chat room: <span style={{ color: '#7b61ff' }}>{roomName}</span>
-			</h1>
-			<div className={styles.chatPage__messagesContainer}>
-				<div className={styles.chatPage__messages}>
-					{messages.map(msg => {
-						const isAuthor = msg.authorId === userId;
-						const messageContainerClass = isAuthor
-							? `${styles.chatPage__messageContainer} ${styles['chatPage__messageContainer--author']}`
-							: styles.chatPage__messageContainer;
-						return (
-							<div key={msg.messageId} className={messageContainerClass}>
-								<p className={styles.chatPage__author}>
-									{isAuthor ? 'You' : msg.author}
-								</p>
-								<div className={styles.chatPage__message}>
-									{editingId === msg.messageId ? (
-										<div className={styles.chatPage__editContainer}>
-											<textarea
-												value={editingText}
-												onChange={e => setEditingText(e.target.value)}
-												rows={2}
-											/>
-											<div>
-												<button onClick={handleSaveEdit}>Save</button>
-												<button
-													onClick={() => {
-														setEditingId(null);
-														setEditingText('');
-													}}
-												>
-													Cancel
-												</button>
-											</div>
-										</div>
-									) : (
-										<p>{msg.message}</p>
-									)}
-									{isAuthor && !editingId && (
-										<button
-											className={styles.chatPage__editButton}
-											onClick={() => handleEditMessage(msg)}
-										>
-											{Pencil}
-										</button>
-									)}
-								</div>
-								<span>{new Date(msg.time).toLocaleString('uk-UA')}</span>
+			<div className={styles.chatPage__container}>
+				<div className={styles.chatPage__roomName}>
+					{editingRoomName ? (
+						<div className={styles.chatPage__roomNameActions}>
+							<input
+								type="text"
+								value={newRoomName}
+								onChange={handleInputChange}
+								onFocus={() => setRoomError('')}
+							/>
+							<div>
+								<button onClick={handleRenameRoom}>Rename room</button>
+								<button onClick={handleCancelRename}>Cancel</button>
 							</div>
-						);
-					})}
+						</div>
+					) : (
+						<h1>
+							Chat room: <span style={{ color: '#7b61ff' }}>{roomName}</span>
+						</h1>
+					)}
+					{!editingRoomName && (
+						<button
+							className={styles.chatPage__editButton}
+							onClick={handleEditRoom}
+						>
+							{Pencil}
+						</button>
+					)}
 				</div>
+				<div className={styles.chatPage__messagesContainer}>
+					<div className={styles.chatPage__messages}>
+						{messages.map(msg => {
+							const isAuthor = msg.authorId === userId;
+							const messageContainerClass = isAuthor
+								? `${styles.chatPage__messageContainer} ${styles['chatPage__messageContainer--author']}`
+								: styles.chatPage__messageContainer;
+							return (
+								<div key={msg.messageId} className={messageContainerClass}>
+									<p className={styles.chatPage__author}>
+										{isAuthor ? 'You' : msg.author}
+									</p>
+									<div className={styles.chatPage__message}>
+										{editingId === msg.messageId ? (
+											<div className={styles.chatPage__editContainer}>
+												<textarea
+													value={editingText}
+													onChange={e => setEditingText(e.target.value)}
+													rows={2}
+												/>
+												<div>
+													<button onClick={handleSaveEdit}>Save</button>
+													<button
+														onClick={() => {
+															setEditingId(null);
+															setEditingText('');
+														}}
+													>
+														Cancel
+													</button>
+												</div>
+											</div>
+										) : (
+											<p>{msg.message}</p>
+										)}
+										{isAuthor && !editingId && (
+											<button
+												className={styles.chatPage__editButton}
+												onClick={() => handleEditMessage(msg)}
+											>
+												{Pencil}
+											</button>
+										)}
+									</div>
+									<span>{new Date(msg.time).toLocaleString('uk-UA')}</span>
+								</div>
+							);
+						})}
+						<div ref={messagesEndRef} />
+					</div>
+				</div>
+				<div className={styles.chatPage__messageInputContainer}>
+					<textarea
+						value={message}
+						onChange={e => setMessage(e.target.value)}
+						placeholder="Type your message here..."
+						rows={2}
+						className={styles.chatPage__messageInput}
+					/>
+					<button
+						onClick={handleSendMessage}
+						disabled={!isJoined || !socket.connected}
+					>
+						{Plane}
+					</button>
+				</div>
+				<div className={styles.chatPage__roomActions}>
+					{/* <button
+						onClick={handleSendMessage}
+						disabled={!isJoined || !socket.connected}
+					>
+						Send
+					</button> */}
+					<button onClick={handleLeaveRoom}>Leave the chat</button>
+					<button onClick={handleDeleteRoom}>Delete room</button>
+				</div>
+				<p className={styles.chatPage__error}>{roomError}</p>
 			</div>
-			<textarea
-				value={message}
-				onChange={e => setMessage(e.target.value)}
-				placeholder="Type your message here..."
-				rows={2}
-				className={styles.chatPage__messageInput}
-			/>
-			<button
-				onClick={handleSendMessage}
-				disabled={!isJoined || !socket.connected}
-			>
-				Send
-			</button>
-			<div className={styles.chatPage__roomActions}>
-				<input
-					type="text"
-					value={newRoomName}
-					onChange={handleInputChange}
-					onFocus={() => setRoomError('')}
-				/>
-				<button onClick={handleRenameRoom}>Rename room</button>
-			</div>
-			<div className={styles.chatPage__roomActions}>
-				<button onClick={handleLeaveRoom}>Leave the chat</button>
-				<button onClick={handleDeleteRoom}>Delete room</button>
-			</div>
-
-			<p className={styles.chatPage__error}>{roomError}</p>
 		</div>
 	);
 };
